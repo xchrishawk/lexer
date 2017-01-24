@@ -31,6 +31,7 @@ find_package(GTest)
 
 # Build main executable
 add_executable(${MAIN_TARGET}
+  ${SOURCE_DIR}/lexical_analyzer.cpp
   ${SOURCE_DIR}/main.cpp)
 target_include_directories(${MAIN_TARGET}
   PRIVATE ${SOURCE_DIR})

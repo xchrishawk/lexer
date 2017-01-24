@@ -22,6 +22,7 @@ namespace lexer
   enum class token_type
   {
     invalid,
+    eof,
     number,
     op,
     open_bracket,

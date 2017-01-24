@@ -35,13 +35,6 @@ add_executable(${MAIN_TARGET}
 target_include_directories(${MAIN_TARGET}
   PRIVATE ${SOURCE_DIR})
 
-# Run main executable
-add_custom_target(run
-  COMMAND ${MAIN_TARGET}
-  DEPENDS ${MAIN_TARGET}
-  WORKING_DIRECTORY ${BUILD_DIR}
-  COMMENT "Running ${CMAKE_PROJECT_NAME}...")
-
 # -- Tests Executable --
 
 if (${GTEST_FOUND})

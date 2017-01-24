@@ -21,7 +21,6 @@ namespace lexer
    */
   enum class token_type
   {
-    invalid,
     eof,
     number,
     op,
@@ -41,20 +40,10 @@ namespace lexer
 
     /** Constructs a new `lexer::token` instance. */
     token()
-      : m_type(lexer::token_type::invalid),
-        m_lexeme()
-    { }
-
-    /** Constructs a new `lexer::token` instance. */
-    token(lexer::token_type type)
-      : m_type(type),
-        m_lexeme()
-    { }
-
-    /** Constructs a new `lexer::token` instance. */
-    token(lexer::token_type type, std::string lexeme)
-      : m_type(type),
-        m_lexeme(std::move(lexeme))
+      : m_type(),
+        m_lexeme(),
+        m_line_number(),
+        m_column_number()
     { }
 
     /* -- Public Methods -- */
@@ -85,12 +74,38 @@ namespace lexer
       m_lexeme = std::move(lexeme);
     }
 
+    /** Returns the line number at which this token was found. */
+    int line_number() const
+    {
+      return m_line_number;
+    }
+
+    /** Sets the line number at which this token was found. */
+    void set_line_number(int line_number)
+    {
+      m_line_number = line_number;
+    }
+
+    /** Returns the column number at which this token was found. */
+    int column_number() const
+    {
+      return m_column_number;
+    }
+
+    /** Sets the column number at which this token was found. */
+    void set_column_number(int column_number)
+    {
+      m_column_number = column_number;
+    }
+
     /* -- Implementation -- */
 
   private:
 
     lexer::token_type m_type;
     std::string m_lexeme;
+    int m_line_number;
+    int m_column_number;
 
   };
 

@@ -8,6 +8,7 @@
 
 /* -- Includes -- */
 
+#include <exception>
 #include <memory>
 #include <string>
 
@@ -17,6 +18,35 @@
 
 namespace lexer
 {
+
+  /**
+   * Exception class thrown when an invalid token is encountered.
+   */
+  class invalid_token_error : public std::exception
+  {
+
+    /* -- Lifecycle -- */
+
+  public:
+
+    /** Constructs a new `lexer::invalid_token_error` instance with the specified information. */
+    invalid_token_error(int line_number, int column_number);
+
+    /** Returns a message for this exception. */
+    virtual const char* what() const noexcept override
+    {
+      return m_message.c_str();
+    }
+
+    /* -- Implementation -- */
+
+  private:
+
+    int m_line_number;
+    int m_column_number;
+    std::string m_message;
+
+  };
 
   /**
    * Class responsible for lexical analysis.

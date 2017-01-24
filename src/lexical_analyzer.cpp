@@ -95,12 +95,10 @@ struct lexical_analyzer::implementation
 /* -- Procedures -- */
 
 invalid_token_error::invalid_token_error(int line_number, int column_number)
-  : m_line_number(line_number),
-    m_column_number(column_number)
 {
   std::ostringstream message;
-  message << "Invalid token found at line " << m_line_number
-          << ", column " << m_column_number << ".";
+  message << "Invalid token found at line " << line_number
+          << ", column " << column_number << ".";
   m_message = message.str();
 }
 

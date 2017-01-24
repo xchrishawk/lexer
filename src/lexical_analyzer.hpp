@@ -42,8 +42,6 @@ namespace lexer
 
   private:
 
-    int m_line_number;
-    int m_column_number;
     std::string m_message;
 
   };

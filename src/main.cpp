@@ -9,7 +9,9 @@
 #include <exception>
 #include <iostream>
 
+#include "expression.hpp"
 #include "lexical_analyzer.hpp"
+#include "syntax_analyzer.hpp"
 #include "token.hpp"
 
 /* -- Namespaces -- */
@@ -22,42 +24,22 @@ using namespace lexer;
 namespace
 {
 
-  /** Tokenizes a string and prints the tokens. */
-  void tokenize_string(const std::string& input)
+  /** Parses a string and prints the syntax tree. */
+  void parse_string(const std::string& input)
   {
     try
     {
       lexical_analyzer lex(input);
+      syntax_analyzer syn(lex);
+
       bool continue_reading = true;
       do
       {
-        token tok = lex.next_token();
-        switch (tok.type())
-        {
-        case token_type::eof:
-          cout << "End of file";
+        auto expr = syn.next_expression();
+        if (expr)
+          print_expression_tree(expr);
+        else
           continue_reading = false;
-          break;
-
-        case token_type::open_bracket:
-          cout << "Open bracket";
-          break;
-
-        case token_type::close_bracket:
-          cout << "Close bracket";
-          break;
-
-        case token_type::number:
-          cout << "Number: " << tok.lexeme();
-          break;
-
-        case token_type::op:
-          cout << "Operator: " << tok.lexeme();
-          break;
-        }
-        cout << " (line " << tok.line_number()
-             << ", column " << tok.column_number()
-             << ")" << endl;
       }
       while (continue_reading);
     }
@@ -73,6 +55,6 @@ namespace
 int main(int argc, char** argv)
 {
   for (int idx = 1; idx < argc; idx++)
-    tokenize_string(argv[idx]);
+    parse_string(argv[idx]);
   return 0;
 }

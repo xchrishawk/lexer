@@ -7,6 +7,7 @@
 /* -- Includes -- */
 
 #include <cstring>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -31,6 +32,10 @@ namespace
   const char OPTIONAL_OP = '?';
   const char KLEENE_OP = '*';
   const char REPEAT_OP = '+';
+
+  // brackets
+  const char OPEN_BRACKET = '(';
+  const char CLOSE_BRACKET = ')';
 }
 
 /* -- Private Procedures -- */
@@ -88,6 +93,26 @@ namespace
     return (is_infix_operator(ch) || is_postfix_operator(ch));
   }
 
+  /** Returns `true` if the specified character is an open bracket. */
+  bool is_open_bracket(char ch)
+  {
+    return (ch == OPEN_BRACKET);
+  }
+
+  /** Returns `true` if the specified character is a close bracket. */
+  bool is_close_bracket(char ch)
+  {
+    return (ch == CLOSE_BRACKET);
+  }
+
+  /** Returns `true` if the specified character is a normal character. */
+  bool is_normal(char ch)
+  {
+    return (!is_operator(ch) &&
+            !is_open_bracket(ch) &&
+            !is_close_bracket(ch));
+  }
+
   /** Returns the precedence for the specified operator. */
   int operator_precedence(char ch)
   {
@@ -112,72 +137,106 @@ namespace
 
 string lexer::regex_to_postfix(const string& regex)
 {
-  struct shuntyard
+  class shuntyard
   {
+  public:
 
     /**
      * Runs the shuntyard algorithm.
      * https://en.wikipedia.org/wiki/Shunting-yard_algorithm
      */
     shuntyard(const string& input)
+      : m_input(input),
+        m_it(m_input.cbegin())
     {
-      auto it = input.cbegin();
-      while (it != input.cend())
+      while (m_it != m_input.cend())
       {
-        char ch = *it;
+        char ch = *m_it;
         if (is_infix_operator(ch))
-          push_infix_operator(ch);
+          handle_infix_operator(ch);
+        else if (is_open_bracket(ch))
+          handle_open_bracket(ch);
+        else if (is_close_bracket(ch))
+          handle_close_bracket(ch);
         else
-        {
-          push_normal(ch);
-
-          // push the implicit concatentation operator, if applicable
-          auto next = it + 1;
-          if (next != input.cend() && !is_operator(*next))
-            push_infix_operator('.');
-        }
-        it++;
+          handle_normal(ch);
+        m_it++;
       }
 
       // pop any remaining operators
-      while (!operators.empty())
+      while (!m_operators.empty())
         pop_operator_to_output();
     }
 
-    /** Pushes a normal character. */
-    void push_normal(char ch)
+    /** Returns the final output string. */
+    string output() const
     {
-      output.push_back(ch);
+      return m_output;
     }
 
-    /** Pushes an infix operator. */
-    void push_infix_operator(char op)
+  private:
+
+    /** Handles a normal character. */
+    void handle_normal(char ch)
     {
-      while (!operators.empty() &&
-             ((is_left_assoc_operator(op) && operator_precedence(op) <= operator_precedence(operators.back())) ||
-              (!is_left_assoc_operator(op) && operator_precedence(op) < operator_precedence(operators.back()))))
+      m_output.push_back(ch);
+      add_implicit_concat_if_needed();
+    }
+
+    /** Handles an open bracket. */
+    void handle_open_bracket(char ch)
+    {
+      m_operators.push_back(ch);
+    }
+
+    /** Handles a close bracket. */
+    void handle_close_bracket(char ch)
+    {
+      while (!m_operators.empty() && m_operators.back() != OPEN_BRACKET)
         pop_operator_to_output();
-      operators.push_back(op);
+      if (m_operators.empty())
+        throw runtime_error("Unmatched parentheses!");
+      m_operators.pop_back();
+      add_implicit_concat_if_needed();
+    }
+
+    /** Handles an infix operator. */
+    void handle_infix_operator(char op)
+    {
+      while (!m_operators.empty() &&
+             ((is_left_assoc_operator(op) &&
+               operator_precedence(op) <= operator_precedence(m_operators.back())) ||
+              (!is_left_assoc_operator(op) &&
+               operator_precedence(op) < operator_precedence(m_operators.back()))))
+        pop_operator_to_output();
+      m_operators.push_back(op);
+    }
+
+    /** Adds the implicit concatentation operator, if needed. */
+    void add_implicit_concat_if_needed()
+    {
+      auto next = m_it + 1;
+      if (next != m_input.end() && (is_normal(*next) || is_open_bracket(*next)))
+        handle_infix_operator(CONCAT_OP);
     }
 
     /** Pops an operator to the output queue. */
     void pop_operator_to_output()
     {
-      char op = operators.back();
-      output.push_back(op);
-      operators.pop_back();
+      char op = m_operators.back();
+      m_output.push_back(op);
+      m_operators.pop_back();
     }
 
-    /** Operator stack. */
-    string operators;
-
-    /** Output string. */
-    string output;
+    const string m_input;
+    string::const_iterator m_it;
+    string m_operators;
+    string m_output;
 
   };
 
   shuntyard s(regex);
-  return s.output;
+  return s.output();
 }
 
 string lexer::postfix_to_regex(const string& postfix)
@@ -190,27 +249,31 @@ string lexer::postfix_to_regex(const string& postfix)
       if (stack.size() < 2)
         throw runtime_error("Regular expression is invalid!");
 
-      string lh_operand = *(stack.crbegin() + 1);
-      string rh_operand = *(stack.crbegin());
-      stack.pop_back();
-      stack.pop_back();
-
+      const auto& lh_operand = *(stack.crbegin() + 1);
+      const auto& rh_operand = *(stack.crbegin());
+      ostringstream token;
       if (ch == CONCAT_OP)
-        stack.push_back(lh_operand + rh_operand);
+        token << lh_operand << rh_operand;
       else if (ch == UNION_OP)
-        stack.push_back("(" + lh_operand + ch + rh_operand + ")");
+        token << "(" << lh_operand << ch << rh_operand << ")";
       else
-        stack.push_back(lh_operand + ch + rh_operand);
+        token << lh_operand << ch << rh_operand;
+
+      stack.pop_back();
+      stack.pop_back();
+      stack.push_back(token.str());
     }
     else if (is_postfix_operator(ch))
     {
       if (stack.size() < 1)
         throw runtime_error("Regular expression is invalid!");
 
-      string operand = *(stack.crbegin());
-      stack.pop_back();
+      const auto& operand = *(stack.crbegin());
+      ostringstream token;
+      token << operand << ch;
 
-      stack.push_back(operand + ch);
+      stack.pop_back();
+      stack.push_back(token.str());
     }
     else
     {

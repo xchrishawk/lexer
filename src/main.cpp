@@ -58,7 +58,7 @@ int main(int argc, char** argv)
   for (int idx = 1; idx < argc; idx++)
     parse_string(argv[idx]);
 
-  const string regex = "abc|d+ef|gh?i|xyz*";
+  const string regex = "(abc|d*e|fg+)(a(b)(c|de|f*h)(d(e((f|g|h*)))))";
   cout << regex << endl;
 
   const string their_postfix = std::string(regex_to_postfix_reference(regex));

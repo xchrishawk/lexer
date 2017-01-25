@@ -55,14 +55,16 @@ std::string lexer::operator_type_string(operator_type operator_type)
 {
   switch (operator_type)
   {
-  case operator_type::addition:
+  case lexer::operator_type::addition:
     return "+";
-  case operator_type::subtraction:
+  case lexer::operator_type::subtraction:
     return "-";
-  case operator_type::multiplication:
+  case lexer::operator_type::multiplication:
     return "*";
-  case operator_type::division:
+  case lexer::operator_type::division:
     return "/";
+  default:
+    return "unknown";
   }
 }
 

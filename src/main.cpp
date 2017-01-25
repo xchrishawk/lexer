@@ -11,6 +11,7 @@
 
 #include "expression.hpp"
 #include "lexical_analyzer.hpp"
+#include "regex.hpp"
 #include "syntax_analyzer.hpp"
 #include "token.hpp"
 
@@ -56,5 +57,21 @@ int main(int argc, char** argv)
 {
   for (int idx = 1; idx < argc; idx++)
     parse_string(argv[idx]);
+
+  const string regex = "abc|d+ef|gh?i|xyz*";
+  cout << regex << endl;
+
+  const string their_postfix = std::string(regex_to_postfix_reference(regex));
+  cout << their_postfix << endl;
+
+  const string their_unpostfix = postfix_to_regex(their_postfix);
+  cout << their_unpostfix << endl;
+
+  const string our_postfix = std::string(regex_to_postfix(regex));
+  cout << our_postfix << endl;
+
+  const string our_unpostfix = std::string(postfix_to_regex(our_postfix));
+  cout << our_unpostfix << endl;
+
   return 0;
 }

@@ -177,8 +177,10 @@ regex_nfa lexer::regex_to_nfa(const string& regex)
       //    IN -> E -> NFA -> OUT
       //
       auto nfa = new_fragment(regex_nfa_fragment::epsilon_symbol, regex_nfa_fragment::epsilon_symbol);
-      set_output(stack.back(), nfa);
-      nfa->link1.output = stack.back();
+      auto e = pop_fragment();
+      set_output(e, nfa);
+      nfa->link1.output = e;
+      push_fragment(e);
       break;
     }
 

@@ -46,7 +46,10 @@ if (${GTEST_FOUND})
 
   # Builds tests executable
   add_executable(${TESTS_TARGET} EXCLUDE_FROM_ALL
-    ${TESTS_DIR}/main.cpp)
+    ${TESTS_DIR}/main.cpp
+    ${TESTS_DIR}/regex_nfa_tests.cpp
+    ${SOURCE_DIR}/regex_nfa.cpp
+    ${SOURCE_DIR}/regex_postfix.cpp)
   target_include_directories(${TESTS_TARGET}
     PRIVATE ${SOURCE_DIR}
     PRIVATE ${TESTS_DIR}

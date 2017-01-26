@@ -1,5 +1,5 @@
 /**
- * @file	regex.hpp
+ * @file	regex_nfa.hpp
  * @author	Chris Vig (chris@invictus.so)
  * @date	2017/01/24
  */
@@ -127,16 +127,6 @@ namespace lexer
 
 namespace lexer
 {
-
-  /**
-   * Convert a regular expression to postfix notation.
-   */
-  std::string regex_to_postfix(const std::string& regex);
-
-  /**
-   * Converts postfix notation to a regular expression.
-   */
-  std::string postfix_to_regex(const std::string& postfix);
 
   /**
    * Convert a regular expression to an NFA.

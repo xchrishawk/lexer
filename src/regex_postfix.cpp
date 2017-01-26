@@ -1,42 +1,23 @@
 /**
- * @file	regex.cpp
+ * @file	regex_postfix.cpp
  * @author	Chris Vig (chris@invictus.so)
- * @date	2017/01/24
+ * @date	2017/01/26
  */
 
 /* -- Includes -- */
 
-#include <cstring>
-#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include "regex.hpp"
+#include "regex_constants.hpp"
+#include "regex_postfix.hpp"
 
 /* -- Namespaces -- */
 
 using namespace std;
 using namespace lexer;
-
-/* -- Constants -- */
-
-namespace
-{
-  // infix operators
-  const char UNION_OP = '|';
-  const char CONCAT_OP = '.';
-
-  // postfix operators
-  const char OPTIONAL_OP = '?';
-  const char KLEENE_OP = '*';
-  const char REPEAT_OP = '+';
-
-  // brackets
-  const char OPEN_BRACKET = '(';
-  const char CLOSE_BRACKET = ')';
-}
 
 /* -- Private Procedures -- */
 
@@ -48,8 +29,8 @@ namespace
   {
     switch (op)
     {
-    case UNION_OP:
-    case CONCAT_OP:
+    case regex_constants::union_op:
+    case regex_constants::concat_op:
       return true;
     default:
       return false;
@@ -61,9 +42,9 @@ namespace
   {
     switch (op)
     {
-    case OPTIONAL_OP:
-    case KLEENE_OP:
-    case REPEAT_OP:
+    case regex_constants::optional_op:
+    case regex_constants::kleene_op:
+    case regex_constants::repeat_op:
       return true;
     default:
       return false;
@@ -78,9 +59,9 @@ namespace
     // implementation.
     switch (ch)
     {
-    case UNION_OP:
+    case regex_constants::union_op:
       return false;
-    case CONCAT_OP:
+    case regex_constants::concat_op:
       return true;
     default:
       abort(); // logic error!
@@ -96,13 +77,13 @@ namespace
   /** Returns `true` if the specified character is an open bracket. */
   bool is_open_bracket(char ch)
   {
-    return (ch == OPEN_BRACKET);
+    return (ch == regex_constants::open_bracket);
   }
 
   /** Returns `true` if the specified character is a close bracket. */
   bool is_close_bracket(char ch)
   {
-    return (ch == CLOSE_BRACKET);
+    return (ch == regex_constants::close_bracket);
   }
 
   /** Returns `true` if the specified character is a normal character. */
@@ -118,137 +99,22 @@ namespace
   {
     switch (ch)
     {
-    case OPTIONAL_OP:
-    case KLEENE_OP:
-    case REPEAT_OP:
+    case regex_constants::optional_op:
+    case regex_constants::kleene_op:
+    case regex_constants::repeat_op:
       return 3;
-    case CONCAT_OP:
+    case regex_constants::concat_op:
       return 2;
-    case UNION_OP:
+    case regex_constants::union_op:
       return 1;
     default:
       return 0;
     }
   }
 
-  /** Sets the output of a `lexer::regex_nfa` tree. */
-  void set_regex_nfa_output(regex_nfa* nfa, regex_nfa* output, const regex_nfa* source)
-  {
-    if (nfa->link1.is_valid())
-    {
-      if (nfa->link1.output && nfa->link1.output != source)
-        set_regex_nfa_output(nfa->link1.output, output, source);
-      else if (!nfa->link1.output)
-        nfa->link1.output = output;
-    }
-    if (nfa->link2.is_valid())
-    {
-      if (nfa->link2.output && nfa->link2.output != source)
-        set_regex_nfa_output(nfa->link2.output, output, source);
-      else if (!nfa->link2.output)
-        nfa->link2.output = output;
-    }
-  }
-
-  /** Sets the output of a `lexer::regex_nfa` tree. */
-  void set_regex_nfa_output(regex_nfa* nfa, regex_nfa* output)
-  {
-    set_regex_nfa_output(nfa, output, nfa);
-  }
-
 }
 
 /* -- Procedures -- */
-
-regex_nfa* lexer::regex_to_nfa(const string& regex)
-{
-  // convert regex to postfix notation
-  string postfix = regex_to_postfix(regex);
-
-  // build NFA using stack
-  vector<regex_nfa*> stack;
-  for (const auto& ch : postfix)
-  {
-    switch (ch)
-    {
-
-    case CONCAT_OP:
-    {
-      // concatenate nodes
-      auto* nfa2 = stack.back();
-      stack.pop_back();
-      auto* nfa1 = stack.back();
-      stack.pop_back();
-      set_regex_nfa_output(nfa1, nfa2);
-      stack.push_back(nfa1);
-      break;
-    }
-
-    case UNION_OP:
-    {
-      // branch between nodes
-      auto* nfa = new regex_nfa { regex_nfa::epsilon_symbol, regex_nfa::epsilon_symbol };
-      nfa->link2.output = stack.back();
-      stack.pop_back();
-      nfa->link1.output = stack.back();
-      stack.pop_back();
-      stack.push_back(nfa);
-      break;
-    }
-
-    case OPTIONAL_OP:
-    {
-      // branch between node and epsilon
-      auto* nfa = new regex_nfa { regex_nfa::epsilon_symbol, regex_nfa::epsilon_symbol };
-      nfa->link1.output = stack.back();
-      stack.pop_back();
-      stack.push_back(nfa);
-      break;
-    }
-
-    case KLEENE_OP:
-    {
-      // loop
-      auto* nfa = new regex_nfa { regex_nfa::epsilon_symbol, regex_nfa::epsilon_symbol };
-      nfa->link1.output = stack.back();
-      stack.pop_back();
-      set_regex_nfa_output(nfa->link1.output, nfa);
-      stack.push_back(nfa);
-      break;
-    }
-
-    case REPEAT_OP:
-    {
-      // loop, but require passing through once
-      auto* nfa = new regex_nfa { regex_nfa::epsilon_symbol, regex_nfa::epsilon_symbol };
-      set_regex_nfa_output(stack.back(), nfa);
-      nfa->link1.output = stack.back();
-      break;
-    }
-
-    default:
-    {
-      // add basic node
-      regex_nfa* nfa = new regex_nfa { ch };
-      stack.push_back(nfa);
-      break;
-    }
-
-    }
-  }
-
-  // validation
-  if (stack.size() != 1)
-    throw runtime_error("Regular expression is invalid!");
-
-  // add terminal node
-  auto* nfa = stack.back();
-  regex_nfa* terminal = new regex_nfa { };
-  set_regex_nfa_output(nfa, terminal);
-
-  // return the final output
-  return nfa;
-}
 
 string lexer::regex_to_postfix(const string& regex)
 {
@@ -307,7 +173,7 @@ string lexer::regex_to_postfix(const string& regex)
     /** Handles a close bracket. */
     void handle_close_bracket(char ch)
     {
-      while (!m_operators.empty() && m_operators.back() != OPEN_BRACKET)
+      while (!m_operators.empty() && m_operators.back() != regex_constants::open_bracket)
         pop_operator_to_output();
       if (m_operators.empty())
         throw runtime_error("Unmatched parentheses!");
@@ -332,7 +198,7 @@ string lexer::regex_to_postfix(const string& regex)
     {
       auto next = m_it + 1;
       if (next != m_input.end() && (is_normal(*next) || is_open_bracket(*next)))
-        handle_infix_operator(CONCAT_OP);
+        handle_infix_operator(regex_constants::concat_op);
     }
 
     /** Pops an operator to the output queue. */
@@ -367,9 +233,9 @@ string lexer::postfix_to_regex(const string& postfix)
       const auto& lh_operand = *(stack.crbegin() + 1);
       const auto& rh_operand = *(stack.crbegin());
       ostringstream token;
-      if (ch == CONCAT_OP)
+      if (ch == regex_constants::concat_op)
         token << lh_operand << rh_operand;
-      else if (ch == UNION_OP)
+      else if (ch == regex_constants::union_op)
         token << "(" << lh_operand << ch << rh_operand << ")";
       else
         token << lh_operand << ch << rh_operand;

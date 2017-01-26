@@ -11,7 +11,8 @@
 
 #include "expression.hpp"
 #include "lexical_analyzer.hpp"
-#include "regex.hpp"
+#include "regex_nfa.hpp"
+#include "regex_postfix.hpp"
 #include "syntax_analyzer.hpp"
 #include "token.hpp"
 
@@ -55,10 +56,11 @@ namespace
 
 int main(int argc, char** argv)
 {
-  auto nfa = regex_to_nfa("a+b");
-
-  int blah = 100;
-  blah++;
+  auto nfa = regex_to_nfa("abc");
+  cout << nfa->link1.symbol << endl;
+  cout << nfa->link1.output->link1.symbol << endl;
+  cout << nfa->link1.output->link1.output->link1.symbol << endl;
+  cout << boolalpha << nfa->link1.output->link1.output->link1.output->is_terminal() << endl;
 
   return 0;
 }

@@ -6,8 +6,10 @@
 
 /* -- Includes -- */
 
-#include <limits>
+#include <iostream>
+#include <memory>
 #include <string>
+#include <vector>
 
 /* -- Types -- */
 
@@ -15,9 +17,9 @@ namespace lexer
 {
 
   /**
-   * Class representing an NFA for a regular expression.
+   * Class representing a fragment in a `lexer::regex_nfa` instance.
    */
-  class regex_nfa
+  class regex_nfa_fragment
   {
 
     /* -- Typedefs -- */
@@ -32,10 +34,10 @@ namespace lexer
   public:
 
     /** Constant representing an invalid link. */
-    static constexpr symbol_type invalid_symbol = std::numeric_limits<symbol_type>::max();
+    static const symbol_type invalid_symbol;
 
     /** Constant representing an epsilon link. */
-    static constexpr symbol_type epsilon_symbol = invalid_symbol - 1;
+    static const symbol_type epsilon_symbol;
 
     /* -- Embedded Types -- */
 
@@ -47,7 +49,7 @@ namespace lexer
 
       /* -- Constructor -- */
 
-      /** Constructs a new `lexer::regex_nfa::link` instance. */
+      /** Constructs a new `lexer::regex_nfa_fragment::link` instance. */
       link(symbol_type symbol)
         : symbol(symbol),
           output(nullptr)
@@ -59,7 +61,7 @@ namespace lexer
       const symbol_type symbol;
 
       /** The NFA that this link is connected to. */
-      regex_nfa* output;
+      regex_nfa_fragment* output;
 
       /* -- Public Methods -- */
 
@@ -81,20 +83,20 @@ namespace lexer
 
   public:
 
-    /** Constructs a `lexer::regex_nfa` with no valid output links (a terminal node). */
-    regex_nfa()
-      : link1(lexer::regex_nfa::invalid_symbol),
-        link2(lexer::regex_nfa::invalid_symbol)
+    /** Constructs a `lexer::regex_nfa_fragment` with no valid output links (a terminal node). */
+    regex_nfa_fragment()
+      : link1(lexer::regex_nfa_fragment::invalid_symbol),
+        link2(lexer::regex_nfa_fragment::invalid_symbol)
     { }
 
-    /** Constructs a `lexer::regex_nfa` with a single valid output link. */
-    regex_nfa(symbol_type symbol)
+    /** Constructs a `lexer::regex_nfa_fragment` with a single valid output link. */
+    regex_nfa_fragment(symbol_type symbol)
       : link1(symbol),
-        link2(lexer::regex_nfa::invalid_symbol)
+        link2(lexer::regex_nfa_fragment::invalid_symbol)
     { }
 
-    /** Constructs a `lexer::regex_nfa` with two valid output links. */
-    regex_nfa(symbol_type symbol1, symbol_type symbol2)
+    /** Constructs a `lexer::regex_nfa_fragment` with two valid output links. */
+    regex_nfa_fragment(symbol_type symbol1, symbol_type symbol2)
       : link1(symbol1),
         link2(symbol2)
     { }
@@ -121,6 +123,41 @@ namespace lexer
 
   };
 
+  /**
+   * Class representing a non-deterministic finite automaton for a regular expression.
+   */
+  class regex_nfa
+  {
+
+    /* -- Lifecycle -- */
+
+  public:
+
+    /** Constructs a new `lexer::regex_nfa` instance. */
+    regex_nfa(std::vector<std::unique_ptr<regex_nfa_fragment>> fragments, const regex_nfa_fragment* head)
+      : m_fragments(std::move(fragments)),
+        m_head(head)
+    { }
+
+    /* -- Public Methods -- */
+
+  public:
+
+    /** Returns a pointer to the top-level fragment for this NFA. */
+    const regex_nfa_fragment* head() const
+    {
+      return m_head;
+    }
+
+    /* -- Implementation -- */
+
+  private:
+
+    std::vector<std::unique_ptr<regex_nfa_fragment>> m_fragments;
+    const regex_nfa_fragment* m_head;
+
+  };
+
 }
 
 /* -- Procedure Prototypes -- */
@@ -131,6 +168,6 @@ namespace lexer
   /**
    * Convert a regular expression to an NFA.
    */
-  lexer::regex_nfa* regex_to_nfa(const std::string& regex);
+  lexer::regex_nfa regex_to_nfa(const std::string& regex);
 
 }

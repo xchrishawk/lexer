@@ -56,11 +56,15 @@ namespace
 
 int main(int argc, char** argv)
 {
+  {
   auto nfa = regex_to_nfa("abc");
-  cout << nfa->link1.symbol << endl;
-  cout << nfa->link1.output->link1.symbol << endl;
-  cout << nfa->link1.output->link1.output->link1.symbol << endl;
-  cout << boolalpha << nfa->link1.output->link1.output->link1.output->is_terminal() << endl;
+  cout << nfa.head()->link1.symbol << endl;
+  cout << nfa.head()->link1.output->link1.symbol << endl;
+  cout << nfa.head()->link1.output->link1.output->link1.symbol << endl;
+  cout << boolalpha << nfa.head()->link1.output->link1.output->link1.output->is_terminal() << endl;
+  }
+
+  cout << "bye" << endl;
 
   return 0;
 }

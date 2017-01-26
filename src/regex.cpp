@@ -131,9 +131,124 @@ namespace
     }
   }
 
+  /** Sets the output of a `lexer::regex_nfa` tree. */
+  void set_regex_nfa_output(regex_nfa* nfa, regex_nfa* output, const regex_nfa* source)
+  {
+    if (nfa->link1.is_valid())
+    {
+      if (nfa->link1.output && nfa->link1.output != source)
+        set_regex_nfa_output(nfa->link1.output, output, source);
+      else if (!nfa->link1.output)
+        nfa->link1.output = output;
+    }
+    if (nfa->link2.is_valid())
+    {
+      if (nfa->link2.output && nfa->link2.output != source)
+        set_regex_nfa_output(nfa->link2.output, output, source);
+      else if (!nfa->link2.output)
+        nfa->link2.output = output;
+    }
+  }
+
+  /** Sets the output of a `lexer::regex_nfa` tree. */
+  void set_regex_nfa_output(regex_nfa* nfa, regex_nfa* output)
+  {
+    set_regex_nfa_output(nfa, output, nfa);
+  }
+
 }
 
 /* -- Procedures -- */
+
+regex_nfa* lexer::regex_to_nfa(const string& regex)
+{
+  // convert regex to postfix notation
+  string postfix = regex_to_postfix(regex);
+
+  // build NFA using stack
+  vector<regex_nfa*> stack;
+  for (const auto& ch : postfix)
+  {
+    switch (ch)
+    {
+
+    case CONCAT_OP:
+    {
+      // concatenate nodes
+      auto* nfa2 = stack.back();
+      stack.pop_back();
+      auto* nfa1 = stack.back();
+      stack.pop_back();
+      set_regex_nfa_output(nfa1, nfa2);
+      stack.push_back(nfa1);
+      break;
+    }
+
+    case UNION_OP:
+    {
+      // branch between nodes
+      auto* nfa = new regex_nfa { regex_nfa::epsilon_symbol, regex_nfa::epsilon_symbol };
+      nfa->link2.output = stack.back();
+      stack.pop_back();
+      nfa->link1.output = stack.back();
+      stack.pop_back();
+      stack.push_back(nfa);
+      break;
+    }
+
+    case OPTIONAL_OP:
+    {
+      // branch between node and epsilon
+      auto* nfa = new regex_nfa { regex_nfa::epsilon_symbol, regex_nfa::epsilon_symbol };
+      nfa->link1.output = stack.back();
+      stack.pop_back();
+      stack.push_back(nfa);
+      break;
+    }
+
+    case KLEENE_OP:
+    {
+      // loop
+      auto* nfa = new regex_nfa { regex_nfa::epsilon_symbol, regex_nfa::epsilon_symbol };
+      nfa->link1.output = stack.back();
+      stack.pop_back();
+      set_regex_nfa_output(nfa->link1.output, nfa);
+      stack.push_back(nfa);
+      break;
+    }
+
+    case REPEAT_OP:
+    {
+      // loop, but require passing through once
+      auto* nfa = new regex_nfa { regex_nfa::epsilon_symbol, regex_nfa::epsilon_symbol };
+      set_regex_nfa_output(stack.back(), nfa);
+      nfa->link1.output = stack.back();
+      break;
+    }
+
+    default:
+    {
+      // add basic node
+      regex_nfa* nfa = new regex_nfa { ch };
+      stack.push_back(nfa);
+      break;
+    }
+
+    }
+  }
+
+  // validation
+  if (stack.size() != 1)
+    throw runtime_error("Regular expression is invalid!");
+
+  // add terminal node
+  auto* nfa = stack.back();
+  regex_nfa* terminal = new regex_nfa { };
+  set_regex_nfa_output(nfa, terminal);
+
+  // return the final output
+  return nfa;
+}
 
 string lexer::regex_to_postfix(const string& regex)
 {
@@ -284,90 +399,4 @@ string lexer::postfix_to_regex(const string& postfix)
   if (stack.size() != 1)
     throw runtime_error("Regular expression is invalid!");
   return stack.back();
-}
-
-/* -- Reference Implementation -- */
-
-static const char* re2post(const char *re)
-{
-  int nalt, natom;
-  static char buf[8000];
-  char *dst;
-  struct {
-    int nalt;
-    int natom;
-  } paren[100], *p;
-
-  p = paren;
-  dst = buf;
-  nalt = 0;
-  natom = 0;
-  if(strlen(re) >= sizeof buf/2)
-    return NULL;
-  for(; *re; re++){
-    switch(*re){
-    case '(':
-      if(natom > 1){
-        --natom;
-        *dst++ = '.';
-      }
-      if(p >= paren+100)
-        return NULL;
-      p->nalt = nalt;
-      p->natom = natom;
-      p++;
-      nalt = 0;
-      natom = 0;
-      break;
-    case '|':
-      if(natom == 0)
-        return NULL;
-      while(--natom > 0)
-        *dst++ = '.';
-      nalt++;
-      break;
-    case ')':
-      if(p == paren)
-        return NULL;
-      if(natom == 0)
-        return NULL;
-      while(--natom > 0)
-        *dst++ = '.';
-      for(; nalt > 0; nalt--)
-        *dst++ = '|';
-      --p;
-      nalt = p->nalt;
-      natom = p->natom;
-      natom++;
-      break;
-    case '*':
-    case '+':
-    case '?':
-      if(natom == 0)
-        return NULL;
-      *dst++ = *re;
-      break;
-    default:
-      if(natom > 1){
-        --natom;
-        *dst++ = '.';
-      }
-      *dst++ = *re;
-      natom++;
-      break;
-    }
-  }
-  if(p != paren)
-    return NULL;
-  while(--natom > 0)
-    *dst++ = '.';
-  for(; nalt > 0; nalt--)
-    *dst++ = '|';
-  *dst = 0;
-  return buf;
-}
-
-string lexer::regex_to_postfix_reference(const string& regex)
-{
-  return string(re2post(regex.c_str()));
 }

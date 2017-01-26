@@ -55,23 +55,10 @@ namespace
 
 int main(int argc, char** argv)
 {
-  for (int idx = 1; idx < argc; idx++)
-    parse_string(argv[idx]);
+  auto nfa = regex_to_nfa("a+b");
 
-  const string regex = "(abc|d*e|fg+)(a(b)(c|de|f*h)(d(e((f|g|h*)))))";
-  cout << regex << endl;
-
-  const string their_postfix = std::string(regex_to_postfix_reference(regex));
-  cout << their_postfix << endl;
-
-  const string their_unpostfix = postfix_to_regex(their_postfix);
-  cout << their_unpostfix << endl;
-
-  const string our_postfix = std::string(regex_to_postfix(regex));
-  cout << our_postfix << endl;
-
-  const string our_unpostfix = std::string(postfix_to_regex(our_postfix));
-  cout << our_unpostfix << endl;
+  int blah = 100;
+  blah++;
 
   return 0;
 }

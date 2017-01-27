@@ -56,15 +56,14 @@ namespace
 
 int main(int argc, char** argv)
 {
-  {
-  auto nfa = regex_to_nfa("abc");
-  cout << nfa.head()->link1.symbol << endl;
-  cout << nfa.head()->link1.output->link1.symbol << endl;
-  cout << nfa.head()->link1.output->link1.output->link1.symbol << endl;
-  cout << boolalpha << nfa.head()->link1.output->link1.output->link1.output->is_terminal() << endl;
-  }
+  static const string REGEX = "a?(b|c)d";
 
-  cout << "bye" << endl;
+  cout << boolalpha;
+  cout << regex_match(REGEX, "bd") << endl;
+  cout << regex_match(REGEX, "abd") << endl;
+  cout << regex_match(REGEX, "aabd") << endl;
+  cout << regex_match(REGEX, "acd") << endl;
+  cout << regex_match(REGEX, "aed") << endl;
 
   return 0;
 }

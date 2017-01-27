@@ -6,7 +6,9 @@
 
 /* -- Includes -- */
 
+#include <cassert>
 #include <limits>
+#include <list>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -78,9 +80,17 @@ regex_nfa lexer::regex_to_nfa(const string& regex)
   // processing stack
   vector<regex_nfa_fragment*> stack;
 
-  // local procedure to create and return a new fragment
-  auto new_fragment = [&] (auto... args) -> regex_nfa_fragment* {
-    fragments.push_back(make_unique<regex_nfa_fragment>(args...));
+  // local procedures to create and return new framgnets
+  auto new_terminal_fragment = [&] () -> regex_nfa_fragment* {
+    fragments.push_back(regex_nfa_fragment::create_terminal());
+    return fragments.back().get();
+  };
+  auto new_epsilon_fragment = [&] () -> regex_nfa_fragment* {
+    fragments.push_back(regex_nfa_fragment::create_epsilon());
+    return fragments.back().get();
+  };
+  auto new_symbol_fragment = [&] (regex_nfa_fragment::symbol_type symbol) -> regex_nfa_fragment* {
+    fragments.push_back(regex_nfa_fragment::create_symbol(symbol));
     return fragments.back().get();
   };
 
@@ -126,7 +136,7 @@ regex_nfa lexer::regex_to_nfa(const string& regex)
       //           |
       //           +---> E2 -> OUT
       //
-      auto nfa = new_fragment(regex_nfa_fragment::epsilon_symbol, regex_nfa_fragment::epsilon_symbol);
+      auto nfa = new_epsilon_fragment();
       nfa->link2.output = pop_fragment();
       nfa->link1.output = pop_fragment();
       push_fragment(nfa);
@@ -142,7 +152,7 @@ regex_nfa lexer::regex_to_nfa(const string& regex)
       //           |
       //           +--------> OUT
       //
-      auto nfa = new_fragment(regex_nfa_fragment::epsilon_symbol, regex_nfa_fragment::epsilon_symbol);
+      auto nfa = new_epsilon_fragment();
       nfa->link1.output = pop_fragment();
       push_fragment(nfa);
       break;
@@ -160,7 +170,7 @@ regex_nfa lexer::regex_to_nfa(const string& regex)
       //           |
       //           +---> OUT
       //
-      auto nfa = new_fragment(regex_nfa_fragment::epsilon_symbol, regex_nfa_fragment::epsilon_symbol);
+      auto nfa = new_epsilon_fragment();
       nfa->link1.output = pop_fragment();
       set_output(nfa->link1.output, nfa);
       push_fragment(nfa);
@@ -177,7 +187,7 @@ regex_nfa lexer::regex_to_nfa(const string& regex)
       //          v     |
       //    IN -> E -> NFA -> OUT
       //
-      auto nfa = new_fragment(regex_nfa_fragment::epsilon_symbol, regex_nfa_fragment::epsilon_symbol);
+      auto nfa = new_epsilon_fragment();
       auto e = pop_fragment();
       set_output(e, nfa);
       nfa->link1.output = e;
@@ -192,7 +202,7 @@ regex_nfa lexer::regex_to_nfa(const string& regex)
       //       ch
       //    IN -> OUT
       //
-      auto nfa = new_fragment(ch);
+      auto nfa = new_symbol_fragment(ch);
       push_fragment(nfa);
       break;
     }
@@ -206,9 +216,75 @@ regex_nfa lexer::regex_to_nfa(const string& regex)
 
   // add terminal node to complete the NFA
   auto head = stack.back();
-  auto terminal = new_fragment();
+  auto terminal = new_terminal_fragment();
   set_output(head, terminal);
 
   // return the final object
   return regex_nfa(move(fragments), head);
+}
+
+bool lexer::regex_match(const string& regex, const string& str)
+{
+  regex_nfa nfa = regex_to_nfa(regex);
+
+  // we use a linked list to store searches because we'll be inserting and
+  // removing at arbitrary positions
+  list<const regex_nfa_fragment*> searches;
+  searches.push_back(nfa.head());
+
+  for (auto ch : str)
+  {
+    auto search_it = searches.begin();
+    while (search_it != searches.end())
+    {
+      // get fragment at this position
+      auto frag = *search_it;
+
+      // advance fragment through any epsilons, spinning off new searches as needed
+      while (frag->is_epsilon())
+      {
+        searches.insert(search_it, frag->link2.output);
+        frag = frag->link1.output;
+      }
+
+      // if the search reaches a terminal node, search was successful so return true
+      if (frag->is_terminal())
+        return true;
+
+      // we should now be at a symbol node
+      assert(frag->is_symbol());
+
+      // if the symbol matches, we can continue, so advance
+      if (frag->link1.symbol == ch)
+      {
+        frag = frag->link1.output;
+
+        // if the result is a terminal node, search was successful so return true
+        if (frag->is_terminal())
+          return true;
+
+        // otherwise, write back the updated fragment, and move on to next search
+        else
+        {
+          *search_it = frag;
+          search_it++;
+        }
+      }
+
+      // symbol doesn't match. this search is a dead end, so drop it and move on to the next one
+      else
+      {
+        auto temp = search_it;
+        search_it++;
+        searches.erase(temp);
+      }
+    }
+
+    // if all searches are gone, it's not a match
+    if (searches.empty())
+      return false;
+  }
+
+  // we ran out of input before reaching a terminal
+  return false;
 }

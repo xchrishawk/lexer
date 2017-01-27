@@ -83,17 +83,31 @@ namespace lexer
 
   public:
 
-    /** Constructs a `lexer::regex_nfa_fragment` with no valid output links (a terminal node). */
-    regex_nfa_fragment()
-      : link1(lexer::regex_nfa_fragment::invalid_symbol),
-        link2(lexer::regex_nfa_fragment::invalid_symbol)
-    { }
+    /** Creates a new epsilon fragment. */
+    static auto create_epsilon()
+    {
+      return std::unique_ptr<lexer::regex_nfa_fragment>(
+        new lexer::regex_nfa_fragment(lexer::regex_nfa_fragment::epsilon_symbol,
+                                      lexer::regex_nfa_fragment::epsilon_symbol));
+    }
 
-    /** Constructs a `lexer::regex_nfa_fragment` with a single valid output link. */
-    regex_nfa_fragment(symbol_type symbol)
-      : link1(symbol),
-        link2(lexer::regex_nfa_fragment::invalid_symbol)
-    { }
+    /** Creates a new terminal fragment. */
+    static auto create_terminal()
+    {
+      return std::unique_ptr<lexer::regex_nfa_fragment>(
+        new lexer::regex_nfa_fragment(lexer::regex_nfa_fragment::invalid_symbol,
+                                      lexer::regex_nfa_fragment::invalid_symbol));
+    }
+
+    /** Creates a new symbol ("normal") fragment. */
+    static auto create_symbol(symbol_type symbol)
+    {
+      return std::unique_ptr<lexer::regex_nfa_fragment>(
+        new lexer::regex_nfa_fragment(symbol,
+                                      lexer::regex_nfa_fragment::invalid_symbol));
+    }
+
+  private:
 
     /** Constructs a `lexer::regex_nfa_fragment` with two valid output links. */
     regex_nfa_fragment(symbol_type symbol1, symbol_type symbol2)
@@ -115,10 +129,22 @@ namespace lexer
 
   public:
 
+    /** Returns `true` if this is an epsilon node. */
+    bool is_epsilon() const
+    {
+      return (link1.is_epsilon() && link2.is_epsilon());
+    }
+
     /** Returns `true` if this is a terminal node. */
     bool is_terminal() const
     {
       return (!link1.is_valid() && !link2.is_valid());
+    }
+
+    /** Returns `true` if this is a symbol node. */
+    bool is_symbol() const
+    {
+      return (!is_epsilon() && !is_terminal());
     }
 
   };
@@ -169,5 +195,10 @@ namespace lexer
    * Convert a regular expression to an NFA.
    */
   lexer::regex_nfa regex_to_nfa(const std::string& regex);
+
+  /**
+   * Check if a string matches a regular expression.
+   */
+  bool regex_match(const std::string& regex, const std::string& str);
 
 }

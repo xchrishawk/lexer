@@ -32,7 +32,7 @@ namespace lexer
     const char open_bracket = '(';
 
     /** Close bracket. */
-    const char close_bracket = '(';
+    const char close_bracket = ')';
 
   }
 }

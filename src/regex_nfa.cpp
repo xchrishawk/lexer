@@ -35,22 +35,23 @@ namespace
    * Recursively sets the output of a `lexer::regex_nfa_fragment` tree.
    *
    * @note
-   * The `source` parameter should be the initial "head" node of the recursion. It is used to
-   * prevent infinite recursion when the graph loops.
+   * The `prev` parameter is to prevent infinitely recursing in case of loops. Since all loops in
+   * the regular expression NFA construction only point to the "previous" node, we only need to
+   * check one level backwards to ensure that we don't loop around.
    */
-  void set_output(regex_nfa_fragment* nfa, regex_nfa_fragment* output, const regex_nfa_fragment* source)
+  void set_output(regex_nfa_fragment* nfa, regex_nfa_fragment* output, const regex_nfa_fragment* prev)
   {
     if (nfa->link1.is_valid())
     {
-      if (nfa->link1.output && nfa->link1.output != source)
-        set_output(nfa->link1.output, output, source);
+      if (nfa->link1.output && nfa->link1.output != prev)
+        set_output(nfa->link1.output, output, nfa);
       else if (!nfa->link1.output)
         nfa->link1.output = output;
     }
     if (nfa->link2.is_valid())
     {
-      if (nfa->link2.output && nfa->link2.output != source)
-        set_output(nfa->link2.output, output, source);
+      if (nfa->link2.output && nfa->link2.output != prev)
+        set_output(nfa->link2.output, output, nfa);
       else if (!nfa->link2.output)
         nfa->link2.output = output;
     }
@@ -59,7 +60,7 @@ namespace
   /** Sets the output of a `lexer::regex_nfa_fragment` tree. */
   void set_output(regex_nfa_fragment* nfa, regex_nfa_fragment* output)
   {
-    set_output(nfa, output, nfa);
+    set_output(nfa, output, nullptr);
   }
 
 }

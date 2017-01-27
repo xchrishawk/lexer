@@ -6,7 +6,9 @@
 
 /* -- Includes -- */
 
+#include <string>
 #include <gtest/gtest.h>
+
 #include "regex_nfa.hpp"
 
 /* -- Namespaces -- */

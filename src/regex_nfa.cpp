@@ -43,6 +43,7 @@ namespace
    */
   void set_output(regex_nfa_fragment* nfa, regex_nfa_fragment* output, const regex_nfa_fragment* prev)
   {
+    // first link
     if (nfa->link1.is_valid())
     {
       if (nfa->link1.output && nfa->link1.output != prev)
@@ -50,6 +51,8 @@ namespace
       else if (!nfa->link1.output)
         nfa->link1.output = output;
     }
+
+    // second link
     if (nfa->link2.is_valid())
     {
       if (nfa->link2.output && nfa->link2.output != prev)
@@ -57,6 +60,10 @@ namespace
       else if (!nfa->link2.output)
         nfa->link2.output = output;
     }
+
+    // sanity check
+    assert(nfa->link1.output != nfa);
+    assert(nfa->link2.output != nfa);
   }
 
   /** Sets the output of a `lexer::regex_nfa_fragment` tree. */
@@ -243,7 +250,7 @@ bool lexer::regex_match(const string& regex, const string& str)
       // advance fragment through any epsilons, spinning off new searches as needed
       while (frag->is_epsilon())
       {
-        searches.insert(search_it, frag->link2.output);
+        searches.push_back(frag->link2.output);
         frag = frag->link1.output;
       }
 
@@ -283,6 +290,21 @@ bool lexer::regex_match(const string& regex, const string& str)
     // if all searches are gone, it's not a match
     if (searches.empty())
       return false;
+  }
+
+  // out of input - check if any live searches have a clear path to a terminal node
+  auto search_it = searches.begin();
+  while (search_it != searches.end())
+  {
+    auto frag = *search_it;
+    while (frag->is_epsilon())
+    {
+      searches.push_back(frag->link2.output);
+      frag = frag->link1.output;
+    }
+    if (frag->is_terminal())
+      return true;
+    search_it++;
   }
 
   // we ran out of input before reaching a terminal

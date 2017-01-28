@@ -17,10 +17,14 @@ using namespace std;
 using namespace testing;
 using namespace lexer;
 
-/* -- Private Procedures -- */
+/* -- Tests -- */
 
-namespace
+/**
+ * Unit test for generating NFAs from regular expressions.
+ */
+class regex_nfa_tests : public Test
 {
+protected:
 
   /** Assert that a link is a valid epsilon link. */
   template <typename TLink>
@@ -74,15 +78,6 @@ namespace
     ASSERT_EQ(frag->is_terminal(), true);
   }
 
-}
-
-/* -- Tests -- */
-
-/**
- * Unit test for generating NFAs from regular expressions.
- */
-class regex_nfa_tests : public Test
-{
 };
 
 /**
@@ -249,4 +244,226 @@ TEST_F(regex_nfa_tests, repeat)
 
   auto frag4 = frag3->link1.output;
   assert_terminal(frag4);
+}
+
+/**
+ * Unit test for the `regex_match` method.
+ */
+class regex_match_tests : public Test
+{
+};
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the concatenation operator.
+ */
+TEST_F(regex_match_tests, concatenation)
+{
+  static const string REGEX = "abc";
+
+  EXPECT_FALSE(regex_match(REGEX, "ab"));
+  EXPECT_TRUE(regex_match(REGEX, "abc"));
+  EXPECT_FALSE(regex_match(REGEX, "xbc"));
+  EXPECT_FALSE(regex_match(REGEX, "axc"));
+  EXPECT_FALSE(regex_match(REGEX, "abx"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the union operator.
+ */
+TEST_F(regex_match_tests, alternation)
+{
+  static const string REGEX = "a(b|c)d";
+
+  EXPECT_FALSE(regex_match(REGEX, "a"));
+  EXPECT_FALSE(regex_match(REGEX, "ab"));
+  EXPECT_TRUE(regex_match(REGEX, "abd"));
+  EXPECT_TRUE(regex_match(REGEX, "acd"));
+  EXPECT_FALSE(regex_match(REGEX, "xbd"));
+  EXPECT_FALSE(regex_match(REGEX, "axd"));
+  EXPECT_FALSE(regex_match(REGEX, "abx"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the optional operator at the
+ * beginning of a string.
+ */
+TEST_F(regex_match_tests, optional_beginning)
+{
+  static const string REGEX = "a?bc";
+
+  EXPECT_FALSE(regex_match(REGEX, "a"));
+  EXPECT_FALSE(regex_match(REGEX, "ab"));
+  EXPECT_TRUE(regex_match(REGEX, "abc"));
+  EXPECT_TRUE(regex_match(REGEX, "bc"));
+  EXPECT_FALSE(regex_match(REGEX, "xbc"));
+  EXPECT_FALSE(regex_match(REGEX, "axc"));
+  EXPECT_FALSE(regex_match(REGEX, "abx"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the optional operator in the
+ * middle of a string.
+ */
+TEST_F(regex_match_tests, optional_middle)
+{
+  static const string REGEX = "ab?c";
+
+  EXPECT_FALSE(regex_match(REGEX, "a"));
+  EXPECT_TRUE(regex_match(REGEX, "ac"));
+  EXPECT_FALSE(regex_match(REGEX, "ab"));
+  EXPECT_TRUE(regex_match(REGEX, "abc"));
+  EXPECT_FALSE(regex_match(REGEX, "xbc"));
+  EXPECT_FALSE(regex_match(REGEX, "axc"));
+  EXPECT_FALSE(regex_match(REGEX, "abx"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the optional operator at the
+ * end of a string.
+ */
+TEST_F(regex_match_tests, optional_end)
+{
+  static const string REGEX = "abc?";
+
+  EXPECT_FALSE(regex_match(REGEX, "a"));
+  EXPECT_TRUE(regex_match(REGEX, "ab"));
+  EXPECT_TRUE(regex_match(REGEX, "abc"));
+  EXPECT_FALSE(regex_match(REGEX, "xbc"));
+  EXPECT_FALSE(regex_match(REGEX, "axc"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the Kleene star operator at the
+ * beginning of a string.
+ */
+TEST_F(regex_match_tests, kleene_beginning)
+{
+  static const string REGEX = "a*bc";
+
+  EXPECT_FALSE(regex_match(REGEX, "a"));
+  EXPECT_FALSE(regex_match(REGEX, "ab"));
+  EXPECT_TRUE(regex_match(REGEX, "bc"));
+  EXPECT_TRUE(regex_match(REGEX, "abc"));
+  EXPECT_TRUE(regex_match(REGEX, "aabc"));
+  EXPECT_TRUE(regex_match(REGEX, "aaabc"));
+  EXPECT_FALSE(regex_match(REGEX, "xbc"));
+  EXPECT_FALSE(regex_match(REGEX, "axc"));
+  EXPECT_FALSE(regex_match(REGEX, "abx"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the Kleene star operator in the
+ * middle of a string.
+ */
+TEST_F(regex_match_tests, kleene_middle)
+{
+  static const string REGEX = "ab*c";
+
+  EXPECT_FALSE(regex_match(REGEX, "a"));
+  EXPECT_TRUE(regex_match(REGEX, "ac"));
+  EXPECT_TRUE(regex_match(REGEX, "abc"));
+  EXPECT_TRUE(regex_match(REGEX, "abbc"));
+  EXPECT_TRUE(regex_match(REGEX, "abbbc"));
+  EXPECT_FALSE(regex_match(REGEX, "xbc"));
+  EXPECT_FALSE(regex_match(REGEX, "axc"));
+  EXPECT_FALSE(regex_match(REGEX, "abx"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the Kleene star operator at the
+ * end of a string.
+ */
+TEST_F(regex_match_tests, kleene_end)
+{
+  static const string REGEX = "abc*";
+
+  EXPECT_FALSE(regex_match(REGEX, "a"));
+  EXPECT_TRUE(regex_match(REGEX, "ab"));
+  EXPECT_TRUE(regex_match(REGEX, "abc"));
+  EXPECT_TRUE(regex_match(REGEX, "abcc"));
+  EXPECT_TRUE(regex_match(REGEX, "abccc"));
+  EXPECT_FALSE(regex_match(REGEX, "xbc"));
+  EXPECT_FALSE(regex_match(REGEX, "axc"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the repeat operator at the
+ * beginning of a string.
+ */
+TEST_F(regex_match_tests, repeat_beginning)
+{
+  static const string REGEX = "a+bc";
+
+  EXPECT_FALSE(regex_match(REGEX, "b"));
+  EXPECT_FALSE(regex_match(REGEX, "bc"));
+  EXPECT_TRUE(regex_match(REGEX, "abc"));
+  EXPECT_TRUE(regex_match(REGEX, "aabc"));
+  EXPECT_TRUE(regex_match(REGEX, "aaabc"));
+  EXPECT_FALSE(regex_match(REGEX, "xbc"));
+  EXPECT_FALSE(regex_match(REGEX, "axc"));
+  EXPECT_FALSE(regex_match(REGEX, "abx"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the repeat operator in the
+ * middle of a string.
+ */
+TEST_F(regex_match_tests, repeat_middle)
+{
+  static const string REGEX = "ab+c";
+
+  EXPECT_FALSE(regex_match(REGEX, "a"));
+  EXPECT_FALSE(regex_match(REGEX, "ac"));
+  EXPECT_TRUE(regex_match(REGEX, "abc"));
+  EXPECT_TRUE(regex_match(REGEX, "abbc"));
+  EXPECT_TRUE(regex_match(REGEX, "abbbc"));
+  EXPECT_FALSE(regex_match(REGEX, "xbc"));
+  EXPECT_FALSE(regex_match(REGEX, "axc"));
+  EXPECT_FALSE(regex_match(REGEX, "abx"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches the repeat operator at the
+ * end of a string.
+ */
+TEST_F(regex_match_tests, repeat_end)
+{
+  static const string REGEX = "abc+";
+
+  EXPECT_FALSE(regex_match(REGEX, "a"));
+  EXPECT_FALSE(regex_match(REGEX, "ab"));
+  EXPECT_TRUE(regex_match(REGEX, "abc"));
+  EXPECT_TRUE(regex_match(REGEX, "abcc"));
+  EXPECT_TRUE(regex_match(REGEX, "abccc"));
+  EXPECT_FALSE(regex_match(REGEX, "xbc"));
+  EXPECT_FALSE(regex_match(REGEX, "axc"));
+  EXPECT_FALSE(regex_match(REGEX, "abx"));
+}
+
+/**
+ * Verify that the `lexer::regex_match` function correctly matches strings using alternation.
+ */
+TEST_F(regex_match_tests, word_alternation)
+{
+  static const string REGEX = "constexpr|static_cast|namespace";
+
+  EXPECT_TRUE(regex_match(REGEX, "constexpr"));
+  EXPECT_FALSE(regex_match(REGEX, "cosntexpr"));
+  EXPECT_TRUE(regex_match(REGEX, "static_cast"));
+  EXPECT_FALSE(regex_match(REGEX, "sttaic_cast"));
+  EXPECT_TRUE(regex_match(REGEX, "namespace"));
+  EXPECT_FALSE(regex_match(REGEX, "namespcae"));
+}
+
+TEST_F(regex_match_tests, complex)
+{
+  static const string REGEX = "(abc|d+e)(xyz?|123)";
+
+  EXPECT_TRUE(regex_match(REGEX, "abcxyz"));
+//  EXPECT_TRUE(regex_match(REGEX, "abcxy"));
+
+
+
+  EXPECT_TRUE(regex_match(REGEX, "dexyz"));
+  EXPECT_TRUE(regex_match(REGEX, "ddexyz"));
 }

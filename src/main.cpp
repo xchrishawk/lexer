@@ -56,14 +56,10 @@ namespace
 
 int main(int argc, char** argv)
 {
-  static const string REGEX = "a?(b|c)d";
+  static const string REGEX = "a?bc";
 
   cout << boolalpha;
-  cout << regex_match(REGEX, "bd") << endl;
-  cout << regex_match(REGEX, "abd") << endl;
-  cout << regex_match(REGEX, "aabd") << endl;
-  cout << regex_match(REGEX, "acd") << endl;
-  cout << regex_match(REGEX, "aed") << endl;
+  cout << regex_match(REGEX, "abc") << endl;
 
   return 0;
 }
